@@ -1,0 +1,678 @@
+---
+created: 2025-11-06T01:21
+updated: 2025-11-06T01:21
+---
+```
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monthly Budget with Wants Tracker (INR)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 16px;
+            color: #495057;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+        }
+        
+        .tab:hover {
+            background: #e9ecef;
+        }
+        
+        .tab.active {
+            background: white;
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+        }
+        
+        .tab-content {
+            display: none;
+            padding: 30px;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            font-size: 28px;
+            font-weight: 700;
+        }
+        
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .card h3 {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
+        
+        .card .amount {
+            font-size: 28px;
+            font-weight: 700;
+        }
+        
+        .budget-layout {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 30px;
+            margin-top: 30px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        tbody tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        
+        tbody tr:hover {
+            background: #e7f1ff;
+            transition: background 0.2s ease;
+        }
+        
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #dee2e6;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+        
+        input[type="text"]:focus, input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .section-header {
+            background: #f8f9fa;
+            font-weight: 700;
+            color: #2c3e50;
+            font-size: 16px;
+        }
+        
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 20px;
+        }
+        
+        canvas {
+            max-height: 350px;
+        }
+        
+        .linked-wants {
+            margin-top: 40px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .linked-wants h2 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        
+        .linked-item {
+            padding: 10px;
+            background: white;
+            margin-bottom: 8px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .priority-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            color: white;
+        }
+        
+        .buy-now {
+            background: #28a745;
+        }
+        
+        .consider-later {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        .avoid {
+            background: #dc3545;
+        }
+        
+        @media (max-width: 1200px) {
+            .budget-layout {
+                grid-template-columns: 1fr;
+            }
+            
+            .chart-container {
+                position: static;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .summary-cards {
+                grid-template-columns: 1fr;
+            }
+            
+            table {
+                font-size: 12px;
+            }
+            
+            th, td {
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab(0)">Monthly Budget</div>
+            <div class="tab" onclick="switchTab(1)">Wants Priority Tracker</div>
+        </div>
+        
+        <div class="tab-content active" id="budget-tab">
+            <h1>Monthly Budget Planner (INR)</h1>
+            
+            <div class="summary-cards">
+                <div class="card">
+                    <h3>Salary</h3>
+                    <div class="amount">₹<span id="salary-display">25,000</span></div>
+                </div>
+                <div class="card">
+                    <h3>Total Income</h3>
+                    <div class="amount">₹<span id="income-display">21,000</span></div>
+                </div>
+                <div class="card">
+                    <h3>Total Expenses</h3>
+                    <div class="amount">₹<span id="expenses-display">0</span></div>
+                </div>
+                <div class="card">
+                    <h3>Remaining Balance</h3>
+                    <div class="amount">₹<span id="balance-display">21,000</span></div>
+                </div>
+            </div>
+            
+            <div class="budget-layout">
+                <div>
+                    <table id="budget-table">
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Description</th>
+                                <th>Amount (₹)</th>
+                                <th>Section</th>
+                                <th>Remaining (₹)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="budget-body">
+                        </tbody>
+                    </table>
+                    
+                    <div class="linked-wants">
+                        <h2>Linked Wants (From Tracker)</h2>
+                        <div id="linked-wants-list"></div>
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <h3 style="text-align: center; margin-bottom: 20px; color: #2c3e50;">Budget Allocation</h3>
+                    <canvas id="budgetChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="tab-content" id="tracker-tab">
+            <h1>Wants Priority Tracker</h1>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Item Name</th>
+                        <th>Cost (₹)</th>
+                        <th>Want (0-10)</th>
+                        <th>Useful (0-10)</th>
+                        <th>Afford (0-10)</th>
+                        <th>Value (0-10)</th>
+                        <th>Improve (0-10)</th>
+                        <th>Total (0-50)</th>
+                        <th>Priority %</th>
+                        <th>Decision</th>
+                    </tr>
+                </thead>
+                <tbody id="wants-body">
+                </tbody>
+            </table>
+            
+            <div class="chart-container">
+                <h3 style="text-align: center; margin-bottom: 20px; color: #2c3e50;">Priority Comparison</h3>
+                <canvas id="priorityChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const TOTAL_INCOME = 21000;
+        const SALARY = 25000;
+        const ALLOCATIONS = {
+            essentials: 0.60,
+            wants: 0.25,
+            savings: 0.10
+        };
+        
+        let budgetData = {
+            essentials: [
+                {category: 'Rent', description: '', amount: 0},
+                {category: 'Groceries', description: '', amount: 0},
+                {category: 'Transport', description: '', amount: 0},
+                {category: 'X', description: '', amount: 0},
+                {category: 'X', description: '', amount: 0}
+            ],
+            wants: [
+                {category: 'Subscriptions', description: '', amount: 0},
+                {category: 'Entertainment', description: '', amount: 0},
+                {category: 'X', description: '', amount: 0},
+                {category: 'X', description: '', amount: 0}
+            ],
+            savings: [
+                {category: 'Savings', description: '', amount: 0},
+                {category: 'X', description: '', amount: 0}
+            ]
+        };
+        
+        let wantsTrackerData = [
+            {name: 'Drone', cost: 15000, want: 8, useful: 6, afford: 3, value: 7, improve: 8},
+            {name: 'Wireless Headphones', cost: 3000, want: 7, useful: 8, afford: 7, value: 8, improve: 7},
+            {name: 'Smartwatch', cost: 8000, want: 6, useful: 7, afford: 5, value: 6, improve: 7}
+        ];
+        
+        let budgetChart, priorityChart;
+        
+        function switchTab(index) {
+            const tabs = document.querySelectorAll('.tab');
+            const contents = document.querySelectorAll('.tab-content');
+            
+            tabs.forEach(t => t.classList.remove('active'));
+            contents.forEach(c => c.classList.remove('active'));
+            
+            tabs[index].classList.add('active');
+            contents[index].classList.add('active');
+            
+            if (index === 1) {
+                updatePriorityChart();
+            }
+        }
+        
+        function formatCurrency(value) {
+            return value.toLocaleString('en-IN');
+        }
+        
+        function calculateTotals() {
+            let totalExpenses = 0;
+            let sectionTotals = {
+                essentials: 0,
+                wants: 0,
+                savings: 0
+            };
+            
+            for (let section in budgetData) {
+                budgetData[section].forEach(item => {
+                    const amount = parseFloat(item.amount) || 0;
+                    totalExpenses += amount;
+                    sectionTotals[section] += amount;
+                });
+            }
+            
+            return {totalExpenses, sectionTotals};
+        }
+        
+        function updateSummary() {
+            const {totalExpenses, sectionTotals} = calculateTotals();
+            const remaining = TOTAL_INCOME - totalExpenses;
+            
+            document.getElementById('salary-display').textContent = formatCurrency(SALARY);
+            document.getElementById('income-display').textContent = formatCurrency(TOTAL_INCOME);
+            document.getElementById('expenses-display').textContent = formatCurrency(totalExpenses);
+            document.getElementById('balance-display').textContent = formatCurrency(remaining);
+            
+            updateBudgetChart(sectionTotals);
+        }
+        
+        function renderBudgetTable() {
+            const tbody = document.getElementById('budget-body');
+            tbody.innerHTML = '';
+            
+            const sections = [
+                {name: 'essentials', label: 'Essentials (60%)', allocated: TOTAL_INCOME * ALLOCATIONS.essentials},
+                {name: 'wants', label: 'Wants (25%)', allocated: TOTAL_INCOME * ALLOCATIONS.wants},
+                {name: 'savings', label: 'Savings/Investments (10%)', allocated: TOTAL_INCOME * ALLOCATIONS.savings}
+            ];
+            
+            sections.forEach(section => {
+                const sectionTotal = budgetData[section.name].reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+                const remaining = section.allocated - sectionTotal;
+                
+                const headerRow = tbody.insertRow();
+                headerRow.className = 'section-header';
+                const headerCell = headerRow.insertCell();
+                headerCell.colSpan = 5;
+                headerCell.textContent = `${section.label} - Allocated: ₹${formatCurrency(section.allocated)} | Spent: ₹${formatCurrency(sectionTotal)} | Remaining: ₹${formatCurrency(remaining)}`;
+                
+                budgetData[section.name].forEach((item, idx) => {
+                    const row = tbody.insertRow();
+                    
+                    const categoryCell = row.insertCell();
+                    const categoryInput = document.createElement('input');
+                    categoryInput.type = 'text';
+                    categoryInput.value = item.category;
+                    categoryInput.onchange = (e) => {
+                        budgetData[section.name][idx].category = e.target.value;
+                    };
+                    categoryCell.appendChild(categoryInput);
+                    
+                    const descCell = row.insertCell();
+                    const descInput = document.createElement('input');
+                    descInput.type = 'text';
+                    descInput.value = item.description;
+                    descInput.onchange = (e) => {
+                        budgetData[section.name][idx].description = e.target.value;
+                    };
+                    descCell.appendChild(descInput);
+                    
+                    const amountCell = row.insertCell();
+                    const amountInput = document.createElement('input');
+                    amountInput.type = 'number';
+                    amountInput.value = item.amount;
+                    amountInput.onchange = (e) => {
+                        budgetData[section.name][idx].amount = parseFloat(e.target.value) || 0;
+                        updateSummary();
+                        renderBudgetTable();
+                    };
+                    amountCell.appendChild(amountInput);
+                    
+                    row.insertCell().textContent = section.label.split(' ')[0];
+                    row.insertCell().textContent = `₹${formatCurrency(remaining)}`;
+                });
+            });
+        }
+        
+        function updateBudgetChart(sectionTotals) {
+            const ctx = document.getElementById('budgetChart').getContext('2d');
+            
+            if (budgetChart) {
+                budgetChart.destroy();
+            }
+            
+            budgetChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['Essentials', 'Wants', 'Savings'],
+                    datasets: [{
+                        data: [sectionTotals.essentials, sectionTotals.wants, sectionTotals.savings],
+                        backgroundColor: ['#667eea', '#764ba2', '#f093fb'],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 15,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.label + ': ₹' + formatCurrency(context.parsed);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function renderWantsTracker() {
+            const tbody = document.getElementById('wants-body');
+            tbody.innerHTML = '';
+            
+            wantsTrackerData.forEach((item, idx) => {
+                const row = tbody.insertRow();
+                
+                const nameCell = row.insertCell();
+                const nameInput = document.createElement('input');
+                nameInput.type = 'text';
+                nameInput.value = item.name;
+                nameInput.onchange = (e) => {
+                    wantsTrackerData[idx].name = e.target.value;
+                    updateLinkedWants();
+                    updatePriorityChart();
+                };
+                nameCell.appendChild(nameInput);
+                
+                const costCell = row.insertCell();
+                const costInput = document.createElement('input');
+                costInput.type = 'number';
+                costInput.value = item.cost;
+                costInput.onchange = (e) => {
+                    wantsTrackerData[idx].cost = parseFloat(e.target.value) || 0;
+                };
+                costCell.appendChild(costInput);
+                
+                ['want', 'useful', 'afford', 'value', 'improve'].forEach(field => {
+                    const cell = row.insertCell();
+                    const input = document.createElement('input');
+                    input.type = 'number';
+                    input.min = '0';
+                    input.max = '10';
+                    input.value = item[field];
+                    input.onchange = (e) => {
+                        const val = parseInt(e.target.value) || 0;
+                        wantsTrackerData[idx][field] = Math.min(10, Math.max(0, val));
+                        renderWantsTracker();
+                        updateLinkedWants();
+                        updatePriorityChart();
+                    };
+                    cell.appendChild(input);
+                });
+                
+                const total = item.want + item.useful + item.afford + item.value + item.improve;
+                const priority = total > 0 ? (total / 50) * 100 : 0;
+                const decision = priority >= 80 ? 'Buy Now' : priority >= 50 ? 'Consider Later' : 'Avoid';
+                
+                row.insertCell().textContent = total;
+                row.insertCell().textContent = priority.toFixed(1) + '%';
+                row.insertCell().textContent = decision;
+            });
+        }
+        
+        function updateLinkedWants() {
+            const container = document.getElementById('linked-wants-list');
+            container.innerHTML = '';
+            
+            if (wantsTrackerData.length === 0) {
+                container.innerHTML = '<p style="color: #6c757d; font-style: italic;">No items in tracker yet.</p>';
+                return;
+            }
+            
+            wantsTrackerData.forEach(item => {
+                const total = item.want + item.useful + item.afford + item.value + item.improve;
+                const priority = total > 0 ? (total / 50) * 100 : 0;
+                const decision = priority >= 80 ? 'Buy Now' : priority >= 50 ? 'Consider Later' : 'Avoid';
+                const badgeClass = priority >= 80 ? 'buy-now' : priority >= 50 ? 'consider-later' : 'avoid';
+                
+                const div = document.createElement('div');
+                div.className = 'linked-item';
+                div.innerHTML = `
+                    <span><strong>${item.name}</strong> - ₹${formatCurrency(item.cost)}</span>
+                    <span class="priority-badge ${badgeClass}">${decision}</span>
+                `;
+                container.appendChild(div);
+            });
+        }
+        
+        function updatePriorityChart() {
+            const ctx = document.getElementById('priorityChart').getContext('2d');
+            
+            if (priorityChart) {
+                priorityChart.destroy();
+            }
+            
+            const labels = wantsTrackerData.map(item => item.name);
+            const priorities = wantsTrackerData.map(item => {
+                const total = item.want + item.useful + item.afford + item.value + item.improve;
+                return total > 0 ? (total / 50) * 100 : 0;
+            });
+            
+            priorityChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Priority %',
+                        data: priorities,
+                        backgroundColor: '#667eea',
+                        borderColor: '#764ba2',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Priority: ' + context.parsed.y.toFixed(1) + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Initialize
+        renderBudgetTable();
+        updateSummary();
+        renderWantsTracker();
+        updateLinkedWants();
+    </script>
+</body>
+</html>
+```
